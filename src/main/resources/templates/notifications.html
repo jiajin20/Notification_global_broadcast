@@ -1,0 +1,46 @@
+<template>
+    <div id="app">
+        <h1>通知</h1>
+        <ul>
+            <li v-for="notification in notifications" :key="notification.id">{{ notification.message }}</li>
+        </ul>
+    </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            notifications: [] // 存储通知的数组
+        },
+        mounted() {
+            // 页面加载时获取所有通知
+            this.fetchNotifications();
+
+            // 连接 WebSocket 获取实时通知
+            this.setupWebSocket();
+        },
+        methods: {
+            // 获取所有通知
+            fetchNotifications() {
+                fetch('/notifications')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.notifications = data;
+                    })
+                    .catch(error => console.error('Error fetching notifications:', error));
+            },
+
+            // 设置 WebSocket 连接
+            setupWebSocket() {
+                const socket = new WebSocket('ws://localhost:8080/notifications');
+                socket.onmessage = (event) => {
+                    const notification = JSON.parse(event.data);
+                    // 将新通知添加到数组并显示
+                    this.notifications.push(notification);
+                };
+            }
+        }
+    });
+</script>
