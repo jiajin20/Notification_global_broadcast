@@ -1,46 +1,112 @@
-<template>
-    <div id="app">
-        <h1>通知</h1>
-        <ul>
-            <li v-for="notification in notifications" :key="notification.id">{{ notification.message }}</li>
-        </ul>
-    </div>
-</template>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知Demo</title>
 
-<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <!-- 引入 SockJS 客户端库 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <!-- 引入 STOMP 库，处理 WebSocket 通信 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <!-- 引入 Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <h1>通知Demo</h1>
+
+    <!-- 显示接收到的通知 -->
+    <ul>
+        <li v-for="notification in notifications" :key="notification.id">{{ notification.message }}</li>
+    </ul>
+
+    <div>
+        <h2>发送通知</h2>
+        <!-- 表单，提交后发送通知 -->
+        <form @submit.prevent="sendNotification">
+            <textarea v-model="newNotification.message" placeholder="输入通知" required></textarea>
+            <button type="submit">发送通知</button>
+        </form>
+    </div>
+
+    <!-- 添加一个隐藏的音频元素 -->
+    <audio ref="notificationSound" src="https://media-qhxn-fj-person.qh6oss.ctyunxs.cn/PERSONCLOUD/fe88fe03-acd2-444d-846f-27f9ac20662c.mp3?x-amz-CLIENTTYPEIN=PC&AWSAccessKeyId=yPySeUDW6JolLinanQ0A&x-amz-userLevel=0&x-amz-limitrate=51200&response-content-type=audio/mpeg&x-amz-UID=108865094308548&response-content-disposition=attachment%3Bfilename%3D%22msg.mp3%22%3Bfilename*%3DUTF-8%27%27msg.mp3&x-amz-CLIENTNETWORK=UNKNOWN&x-amz-CLOUDTYPEIN=PERSON&Signature=gXpFbXalAo%2BBaWH4L6wpZreMmcY%3D&Expires=1743470349&x-amz-FSIZE=11047&x-amz-UFID=324811187298836197" preload="auto"></audio>
+</div>
+
 <script>
+    // Vue.js 实例
     new Vue({
-        el: '#app',
+        el: '#app',  // 挂载 Vue 实例到 id 为 "app" 的 DOM 元素
         data: {
-            notifications: [] // 存储通知的数组
+            notifications: [],  // 存储接收到的通知
+            newNotification: { message: '' },  // 存储新通知的输入内容
+            stompClient: null,  // 用于 WebSocket 连接的 STOMP 客户端
         },
         mounted() {
-            // 页面加载时获取所有通知
-            this.fetchNotifications();
-
-            // 连接 WebSocket 获取实时通知
-            this.setupWebSocket();
+            // Vue 实例挂载后，初始化 WebSocket 连接和获取通知
+            this.fetchNotifications();  // 获取当前的通知列表
+            this.setupWebSocket();  // 设置 WebSocket 连接
         },
         methods: {
-            // 获取所有通知
+            // 获取现有的通知列表
             fetchNotifications() {
-                fetch('/notifications')
-                    .then(response => response.json())
+                fetch('/api/notifications')  // 请求获取通知数据
+                    .then(response => response.json())  // 解析 JSON 格式的响应
                     .then(data => {
-                        this.notifications = data;
+                        this.notifications = data;  // 将获取到的通知数据赋值给 notifications
                     })
-                    .catch(error => console.error('Error fetching notifications:', error));
+                    .catch(error => console.error('Error fetching notifications:', error));  // 错误处理
             },
 
             // 设置 WebSocket 连接
             setupWebSocket() {
-                const socket = new WebSocket('ws://localhost:8080/notifications');
-                socket.onmessage = (event) => {
-                    const notification = JSON.parse(event.data);
-                    // 将新通知添加到数组并显示
-                    this.notifications.push(notification);
+                const socket = new SockJS('http://127.0.0.1:8080/notifications');  // 创建一个 SockJS 连接
+                this.stompClient = Stomp.over(socket);  // 创建 STOMP 客户端
+                this.stompClient.connect({}, (frame) => {  // 连接 WebSocket
+                    console.log('Connected to WebSocket:', frame);  // 打印连接成功信息
+                    // 订阅消息主题，监听消息
+                    this.stompClient.subscribe('/topic/notifications', (messageOutput) => {
+                        const notification = JSON.parse(messageOutput.body);  // 解析接收到的通知
+                        this.notifications.push(notification);  // 将新通知添加到 notifications 列表中
+                        this.playNotificationSound();  // 播放通知声音
+                    });
+                });
+            },
+
+            sendNotification() {
+                const request = {
+                    notification: this.newNotification,  // 你的通知内容
+                    emailRequest: { content: this.newNotification.message },  // 邮件内容
                 };
+
+                fetch('/api/notifications/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(request)  // 发送包装后的请求体
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => console.log('Notification sent:', data))
+                    .catch(error => console.error('Error sending notification:', error));
+            },
+
+
+
+
+
+            // 播放提示音
+            playNotificationSound() {
+                this.$refs.notificationSound.play();  // 通过 Vue 引用播放音频
             }
         }
     });
 </script>
+</body>
+</html>

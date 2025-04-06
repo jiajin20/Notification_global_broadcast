@@ -1,28 +1,51 @@
 package com.test.message.service;
 
-import com.test.message.dao.NotificationDao;
+import com.test.message.mapper.NotificationMapper;
+import com.test.message.mapper.UserMapper;
 import com.test.message.model.Notification;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class NotificationService {
 
-    private final NotificationDao notificationDao;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private NotificationMapper notificationMapper;
+    @Autowired
+    private UserMapper  userMapper;
+    @Autowired
+    private EmailService emailService;
 
-    public NotificationService(NotificationDao notificationDao) {
-        this.notificationDao = notificationDao;
+
+    public List<Notification> getAllNotifications() {
+        return notificationMapper.findAll();
     }
 
-    // 保存通知到数据库
-    public void saveNotification(Notification notification) {
-        notificationDao.saveNotification(notification);
+    public void saveNotification(String message) {
+        Notification notification = new Notification();
+        notification.setMessage(message);
+        notification.setCreatedAt(LocalDateTime.now());
+        notificationMapper.save(notification);
     }
 
-    // 获取所有通知
-    public void sendAllNotifications() {
-        notificationDao.getAllNotifications().forEach(notification -> {
-            // 将通知通过 WebSocket 推送到所有连接的客户端
-            // 这里我们可以将发送通知的功能加入
-        });
+    public void broadcastNotification(Notification notification) {
+        messagingTemplate.convertAndSend("/topic/notifications", notification);
+    }
+
+    public void sendNotificationToAll(String message) {
+        List<String> emails = userMapper.getAllEmails();
+        for (String email : emails) {
+            try {
+                emailService.sendSimpleMail(new String[] { email }, "新通知", message);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

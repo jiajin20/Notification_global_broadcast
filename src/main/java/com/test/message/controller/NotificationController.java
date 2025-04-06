@@ -1,23 +1,52 @@
 package com.test.message.controller;
 
+import com.test.message.dto.NotificationRequestDto;
 
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 
-@Controller
+import com.test.message.service.NotificationService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@CrossOrigin(origins = "http://127.0.0.1:8080")  // 允许来自指定源的跨域请求
+@RequestMapping("/api/notifications")
 public class NotificationController {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private NotificationService notificationService;
 
-    public NotificationController(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    // 获取所有通知
+    @GetMapping
+    public List<com.test.message.model.Notification> getNotifications() {
+        return notificationService.getAllNotifications();
     }
 
-    // 发送通知
-    @MessageMapping("/sendNotification")
-    public void sendNotification(String message) {
-        // 向所有连接的客户端发送通知
-        messagingTemplate.convertAndSend("/topic/notifications", message);
+
+    @PostMapping("/send")
+    public ResponseEntity<?> sendNotification( @RequestBody NotificationRequestDto request) {
+        System.out.println(request);
+        try {
+
+            notificationService.saveNotification(request.getEmailRequest().getContent());
+
+            notificationService.broadcastNotification(request.getNotification());
+
+            notificationService.sendNotificationToAll(request.getEmailRequest().getContent());
+            return ResponseEntity.ok("通知已发送");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("发送失败");
+        }
     }
+
+
+
+
+
+
+
+
 }

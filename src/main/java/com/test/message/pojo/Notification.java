@@ -1,25 +1,21 @@
-package com.test.message.model;
+package com.test.message.pojo;
 
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 public class Notification {
-    private String message;
+
     private Long id;
+    private String message;
     private LocalDateTime createdAt;
 
-
-    public Notification() {
+    // Getters and Setters
+    public Long getId() {
+        return id;
     }
 
-
-    @JsonCreator
-    public Notification(@JsonProperty("message") String message) {
-        this.message = message;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getMessage() {
@@ -30,15 +26,6 @@ public class Notification {
         this.message = message;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -47,5 +34,3 @@ public class Notification {
         this.createdAt = createdAt;
     }
 }
-
-

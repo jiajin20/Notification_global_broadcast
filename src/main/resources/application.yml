@@ -1,3 +1,34 @@
-# 应用服务 WEB 访问端口
-server.port=8080
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/test?serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  websocket:
+    enabled: true
+  thymeleaf:
+    prefix: classpath:/templates/        # 模板文件所在的目录
+    suffix: .html                        # 模板文件的后缀
+    mode: HTML                           # 模板的渲染模式，默认是 HTML
+    encoding: UTF-8                      # 模板文件的字符编码
+    cache: false
 
+  mail:
+    host: smtp.yeah.net
+    port: 465
+    username:
+    password:
+    from:
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true

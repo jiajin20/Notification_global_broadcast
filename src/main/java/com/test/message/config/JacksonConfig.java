@@ -10,7 +10,6 @@ public class JacksonConfig {
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
-        // 可以根据需要为 ObjectMapper 添加更多配置
         return objectMapper;
     }
 }
